@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>「人间清醒」鉴茶能力量化测试</title>
+    <style>
+        :root {
+            --primary-color: #4CAF50; /* 绿茶绿 */
+            --secondary-color: #e8f5e9;
+            --text-color: #333;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --accent-color: #ff9800;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .section-title {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 30px;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+
+        .question-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+        }
+
+        .question-card:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+
+        .question-text {
+            font-weight: bold;
+            font-size: 1.05em;
+            margin-bottom: 15px;
+        }
+
+        .options label {
+            display: block;
+            padding: 10px;
+            margin: 5px 0;
+            background: #fafafa;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .options label:hover {
+            background: var(--secondary-color);
+        }
+
+        .options input[type="radio"] {
+            margin-right: 10px;
+        }
+
+        .btn-submit {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2em;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: background 0.3s;
+        }
+
+        .btn-submit:hover {
+            background-color: #45a049;
+        }
+
+        /* Result Modal Styles */
+        #result-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .result-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .score-display {
+            font-size: 3em;
+            color: var(--primary-color);
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .rank-title {
+            font-size: 1.5em;
+            color: var(--accent-color);
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .rank-desc {
+            text-align: left;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+        }
+
+        .btn-close {
+            background: #666;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #eee;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-color);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🍵 「人间清醒」鉴茶能力测试</h1>
+        <p class="subtitle">识别“以退为进”、“明褒暗贬”的伪装大师</p>
+        <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+    </header>
+
+    <form id="quiz-form">
+        <!-- 题目将通过 JS 动态生成 -->
+    </form>
+
+    <button type="button" class="btn-submit" onclick="calculateScore()">查看我的鉴茶段位</button>
+</div>
+
+<!-- 结果弹窗 -->
+<div id="result-modal">
+    <div class="result-content">
+        <h2>测试结果</h2>
+        <div class="score-display" id="final-score">0</div>
+        <div class="rank-title" id="rank-title">段位加载中...</div>
+        <div class="rank-desc" id="rank-desc">描述加载中...</div>
+        <button class="btn-close" onclick="closeModal()">关闭并重新测试</button>
+    </div>
+</div>
+
+<script>
+    // 题库数据
+    const questions = [
+        {
+            category: "语言艺术篇",
+            q: "当你的伴侣和其他异性正常聊天时，她说：",
+            options: [
+                { text: "你们聊得真开心，我就不打扰了，毕竟我比较无趣。", score: 5 },
+                { text: "哈哈，没事，我也喜欢和男生当兄弟。", score: 0 },
+                { text: "那个女生挺漂亮的，你眼光真好。", score: 0 },
+                { text: "哎呀，她是不是对你有意思？你要小心哦。", score: 2 }
+            ]
+        },
+        {
+            category: "语言艺术篇",
+            q: "她评价你的现任女友/妻子时说：",
+            options: [
+                { text: "她好凶哦，要是我肯定舍不得让你受委屈。", score: 5 },
+                { text: "她性格挺直爽的，就是脾气急了点。", score: 1 },
+                { text: "你们很般配，祝你们幸福。", score: 0 },
+                { text: "我不太懂她为什么总跟你吵架，可能是我不够温柔吧。", score: 3 }
+            ]
+        },
+        {
+            category: "语言艺术篇",
+            q: "当你送她礼物或帮忙时，她的反应是：",
+            options: [
+                { text: "这怎么好意思呢？让你破费了，你女朋友不会生气吧？", score: 5 },
+                { text: "哇！谢谢！正好我需要这个！", score: 0 },
+                { text: "太贵重了，我不能收。（然后收下）", score: 2 },
+                { text: "下次我请你喝奶茶还你。", score: 0 }
+            ]
+        },
+        {
+            category: "语言艺术篇",
+            q: "面对异性的追求，她的回应通常是：",
+            options: [
+                { text: "其实我一直把你当哥哥/好朋友，不想破坏我们的关系。", score: 5 },
+                { text: "我现在不想谈恋爱。", score: 0 },
+                { text: "你很好，但我配不上你。", score: 2 },
+                { text: "直接拒绝，不拖泥带水。", score: 0 }
+            ]
+        },
+        {
+            category: "语言艺术篇",
+            q: "在群里或公开场合，她说话的风格是：",
+            options: [
+                { text: "总是用叠词、语气词（嘤嘤嘤、嘛、呀），显得特别柔弱。", score: 5 },
+                { text: "幽默风趣，接梗自然。", score: 0 },
+                { text: "逻辑清晰，就事论事。", score: 0 },
+                { text: "偶尔撒娇，但分场合。", score: 2 }
+            ]
+        },
+        {
+            category: "边界管理篇",
+            q: "关于与其他异性的肢体接触，她的态度是：",
+            options: [
+                { text: "我们只是好朋友，牵手/坐大腿没什么吧？你想多了。", score: 5 },
+                { text: "严格保持社交距离，避免误会。", score: 0 },
+                { text: "在人多时开玩笑碰一下，私下很规矩。", score: 1 },
+                { text: "只有对男朋友才亲密。", score: 0 }
+            ]
+        },
+        {
+            category: "边界管理篇",
+            q: "她向你倾诉的内容主要是：",
+            options: [
+                { text: "感情挫折、家庭不幸，暗示'如果当初遇到的是你就好了'。", score: 5 },
+                { text: "工作吐槽、生活趣事。", score: 0 },
+                { text: "询问你的专业建议。", score: 0 },
+                { text: "聊聊最近的热点新闻。", score: 0 }
+            ]
+        },
+        {
+            category: "边界管理篇",
+            q: "对于你的伴侣，她的行为模式是：",
+            options: [
+                { text: "表面客气，背地里说你伴侣坏话，或在你伴侣面前和你装熟。", score: 5 },
+                { text: "保持礼貌距离，不主动私下联系。", score: 0 },
+                { text: "偶尔一起聚会，但从不单独约你。", score: 0 },
+                { text: "会主动帮你维护伴侣的形象。", score: 0 }
+            ]
+        },
+        {
+            category: "边界管理篇",
+            q: "深夜时分，她找你聊天的频率和内容：",
+            options: [
+                { text: "经常深夜 emo，分享伤感歌曲，聊到很晚。", score: 5 },
+                { text: "除非急事，否则不打扰。", score: 0 },
+                { text: "偶尔聊几句就睡了。", score: 0 },
+                { text: "只在周末白天约饭。", score: 0 }
+            ]
+        },
+        {
+            category: "边界管理篇",
+            q: "当你和伴侣发生矛盾时，她的反应是：",
+            options: [
+                { text: "站在你这边批评你伴侣，鼓励你分手或冷战。", score: 5 },
+                { text: "劝你们好好沟通，各退一步。", score: 0 },
+                { text: "假装不知道，不发表意见。", score: 0 },
+                { text: "帮你分析客观原因，但不煽动情绪。", score: 1 }
+            ]
+        },
+        {
+            category: "心理博弈篇",
+            q: "当她做错了事被你指出时，她会：",
+            options: [
+                { text: "眼眶红了：'我只是想对你好，你怎么能这么凶我？'", score: 5 },
+                { text: "承认错误并道歉。", score: 0 },
+                { text: "解释原因，寻求理解。", score: 1 },
+                { text: "沉默不语，冷处理。", score: 0 }
+            ]
+        },
+        {
+            category: "心理博弈篇",
+            q: "她如何定义你们的关系？",
+            options: [
+                { text: "'我们是红颜知己/蓝颜知己，这种纯洁的友谊比爱情更长久。'", score: 5 },
+                { text: "普通朋友。", score: 0 },
+                { text: "同事/同学。", score: 0 },
+                { text: "暧昧对象（明确承认）。", score: 0 }
+            ]
+        },
+        {
+            category: "心理博弈篇",
+            q: "面对其他异性的示好，她是否享受“备胎”待遇？",
+            options: [
+                { text: "照单全收（礼物、接送、安慰），但明确表示'还没准备好'。", score: 5 },
+                { text: "拒绝不必要的付出。", score: 0 },
+                { text: "礼尚往来，互不相欠。", score: 0 },
+                { text: "只接受普通朋友的帮助。", score: 1 }
+            ]
+        },
+        {
+            category: "心理博弈篇",
+            q: "她是否会刻意营造“我很抢手”的假象？",
+            options: [
+                { text: "经常提到'有个男生追我好久'，暗示你很危险。", score: 5 },
+                { text: "低调行事，不炫耀追求者。", score: 0 },
+                { text: "坦诚分享追求经历作为谈资。", score: 1 },
+                { text: "从未提起过。", score: 0 }
+            ]
+        },
+        {
+            category: "心理博弈篇",
+            q: "当你想要疏远她时，她会：",
+            options: [
+                { text: "突然变得非常体贴、卑微，或者制造突发状况让你回头。", score: 5 },
+                { text: "尊重你的决定，慢慢淡出。", score: 0 },
+                { text: "直接问原因。", score: 0 },
+                { text: "无所谓的态度。", score: 0 }
+            ]
+        },
+        {
+            category: "实战演练篇",
+            q: "场景：你开车带她，手不小心碰到她的腿。",
+            options: [
+                { text: "没有躲开，反而娇嗔道：'哎呀，你手好凉~'并顺势靠近。", score: 5 },
+                { text: "立刻挪开身体，提醒专心开车。", score: 0 },
+                { text: "尴尬地笑一下，当作没发生。", score: 1 },
+                { text: "严肃地说：'请注意距离。'", score: 0 }
+            ]
+        },
+        {
+            category: "实战演练篇",
+            q: "场景：你女朋友在场，她递给你一瓶拧松盖的水。",
+            options: [
+                { text: "笑着说：'特意帮你拧开的，姐姐不会介意吧？'", score: 5 },
+                { text: "递给你一瓶未开封的水。", score: 0 },
+                { text: "自己喝自己的，不给你递水。", score: 0 },
+                { text: "先问你女朋友要不要喝。", score: 0 }
+            ]
+        },
+        {
+            category: "实战演练篇",
+            q: "场景：你生病了，她发消息说：",
+            options: [
+                { text: "'好心疼你啊，要是我在你身边就好了，不像某些人只会让你多喝热水。'", score: 5 },
+                { text: "'听说你病了，好好休息，早日康复。'", score: 0 },
+                { text: "'需要我送药吗？'", score: 0 },
+                { text: "'多喝水，按时吃药。'", score: 0 }
+            ]
+        },
+        {
+            category: "实战演练篇",
+            q: "场景：聚餐时她一直盯着你看，对视后又害羞低头。",
+            options: [
+                { text: "频繁眼神拉丝，并在桌下用脚轻轻触碰你。", score: 5 },
+                { text: "正常交流，眼神自然。", score: 0 },
+                { text: "只和旁边的人聊天。", score: 0 },
+                { text: "偶尔对视，大方微笑。", score: 0 }
+            ]
+        },
+        {
+            category: "实战演练篇",
+            q: "场景：你抱怨工作累，她说：",
+            options: [
+                { text: "'你太辛苦了，换做是我早崩溃了。还是跟我在一起轻松点吧。'", score: 5 },
+                { text: "'工作都这样，加油，早点休息。'", score: 0 },
+                { text: "'要不要出来喝一杯放松下？'", score: 1 },
+                { text: "分享自己类似的经历表示共情。", score: 0 }
+            ]
+        }
+    ];
+
+    const results = [
+        { min: 0, max: 40, title: "🐶 纯情小狗 / 钢铁直男", desc: "您可能过于单纯，容易把别人的客套当真。极易成为“绿茶”的狩猎目标。建议：提高警惕，注意异性交往的边界感。" },
+        { min: 41, max: 70, title: "👀 半信半疑 / 摇摆不定", desc: "您能感觉到不对劲，但容易被对方的眼泪说服。建议在关系中相信直觉，如果感到疲惫需及时止损。" },
+        { min: 71, max: 90, title: "🛡️ 人间清醒 / 鉴茶达人", desc: "您对套路了如指掌，很难被情绪操控。拥有清晰的边界感，懂得及时止损。保持这份清醒！" },
+        { min: 91, max: 100, title: "🕵️‍♂️ 读心大师 / 反 PUA 专家", desc: "您是情感博弈的高手，任何伪装在您面前都无所遁形。可以用您的智慧去帮助身边容易受骗的朋友。" }
+    ];
+
+    // 初始化页面
+    function initQuiz() {
+        const form = document.getElementById('quiz-form');
+        let currentCategory = '';
+
+        questions.forEach((item, index) => {
+            // 添加分类标题
+            if (item.category !== currentCategory) {
+                currentCategory = item.category;
+                const catDiv = document.createElement('div');
+                catDiv.className = 'section-title';
+                catDiv.innerText = `${index + 1}. ${currentCategory}`;
+                form.appendChild(catDiv);
+            }
+
+            // 添加问题卡片
+            const card = document.createElement('div');
+            card.className = 'question-card';
+            
+            const qText = document.createElement('div');
+            qText.className = 'question-text';
+            qText.innerText = `${index + 1}. ${item.q}`;
+            card.appendChild(qText);
+
+            const optionsDiv = document.createElement('div');
+            optionsDiv.className = 'options';
+
+            item.options.forEach((opt, optIndex) => {
+                const label = document.createElement('label');
+                const input = document.createElement('input');
+                input.type = 'radio';
+                input.name = `q${index}`;
+                input.value = opt.score;
+                
+                label.appendChild(input);
+                label.appendChild(document.createTextNode(opt.text));
+                optionsDiv.appendChild(label);
+            });
+
+            card.appendChild(optionsDiv);
+            form.appendChild(card);
+        });
+    }
+
+    // 计算分数
+    function calculateScore() {
+        let totalScore = 0;
+        let answeredCount = 0;
+        const totalQuestions = questions.length;
+
+        for (let i = 0; i < totalQuestions; i++) {
+            const radios = document.getElementsByName(`q${i}`);
+            let selected = false;
+            for (const radio of radios) {
+                if (radio.checked) {
+                    totalScore += parseInt(radio.value);
+                    selected = true;
+                    break;
+                }
+            }
+            if (selected) answeredCount++;
+        }
+
+        if (answeredCount < totalQuestions) {
+            alert(`您还有 ${totalQuestions - answeredCount} 道题没做完哦，请完成后提交！`);
+            return;
+        }
+
+        showResult(totalScore);
+    }
+
+    // 显示结果
+    function showResult(score) {
+        const modal = document.getElementById('result-modal');
+        const scoreEl = document.getElementById('final-score');
+        const titleEl = document.getElementById('rank-title');
+        const descEl = document.getElementById('rank-desc');
+
+        // 找到对应的等级
+        const result = results.find(r => score >= r.min && score <= r.max);
+
+        scoreEl.innerText = score;
+        titleEl.innerText = result.title;
+        descEl.innerText = result.desc;
+
+        modal.style.display = 'flex';
+        
+        // 滚动到顶部
+        window.scrollTo(0, 0);
+    }
+
+    // 关闭弹窗
+    function closeModal() {
+        document.getElementById('result-modal').style.display = 'none';
+        window.scrollTo(0, 0);
+    }
+
+    // 监听滚动更新进度条
+    window.onscroll = function() {
+        const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+        const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+        const scrolled = (winScroll / height) * 100;
+        document.getElementById("progress").style.width = scrolled + "%";
+    };
+
+    // 启动
+    initQuiz();
+
+</script>
+
+</body>
+</html>
