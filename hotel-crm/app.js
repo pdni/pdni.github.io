@@ -370,10 +370,6 @@ function renderChannels(container) {
               <th>匹配率</th>
               <th>有价酒店</th>
               <th>露出产品</th>
-              <th>EPS BW</th>
-              <th>HB BW</th>
-              <th>WB BW</th>
-              <th>MT BW</th>
               <th>面纱设置</th>
               <th>操作</th>
             </tr>
@@ -387,16 +383,44 @@ function renderChannels(container) {
                 <td>${c.matchRate ? (c.matchRate * 100).toFixed(1) + '%' : '-'}</td>
                 <td>${formatNumber(c.pricedHotels)}</td>
                 <td>${formatNumber(c.exposedProducts)}</td>
-                <td>${c.bw.eps || '-'}</td>
-                <td>${c.bw.hb || '-'}</td>
-                <td>${c.bw.wb || '-'}</td>
-                <td>${c.bw.mt || '-'}</td>
                 <td>${c.veilSetting ? '<span class="badge bg-amber-100 text-amber-700">有设置</span>' : '<span class="badge bg-gray-100 text-gray-600">无</span>'}</td>
                 <td>
                   <button class="btn btn-primary" onclick="navigate('channels', {channelName:'${c.name}'})">
                     <i class="fas fa-eye"></i> 详情
                   </button>
                 </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <div class="card-header">
+        <div class="card-title"><i class="fas fa-user-shield text-green-500 mr-2"></i>渠道用户信息提供情况</div>
+      </div>
+      <div class="table-container">
+        <table class="data-table" id="channelUserInfoTable">
+          <thead>
+            <tr>
+              <th>渠道</th>
+              <th>是否提供用户手机邮箱</th>
+              <th>邮箱</th>
+              <th>电话</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${CRM_DATA.channelUserInfo.map(c => `
+              <tr>
+                <td><strong>${c.channel}</strong></td>
+                <td>
+                  ${c.providesInfo
+                    ? '<span class="badge bg-green-100 text-green-700"><i class="fas fa-check mr-1"></i>提供</span>'
+                    : '<span class="badge bg-red-100 text-red-700"><i class="fas fa-xmark mr-1"></i>不提供' + (c.phone ? '，提供自己电话邮箱' : '') + '</span>'}
+                </td>
+                <td>${c.email || '-'}</td>
+                <td>${c.phone || '-'}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -468,26 +492,29 @@ function renderChannelDetail(container) {
           <thead>
             <tr>
               <th>供应商</th>
-              <th>EPS</th>
-              <th>AGODA</th>
-              <th>HB</th>
-              <th>WB</th>
-              <th>WB-Safe</th>
-              <th>DIDA</th>
-              <th>MT</th>
+              <th>BW值（提前预订天数）</th>
+              <th>状态</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td><strong>${c.name}</strong></td>
-              <td><span class="badge ${c.bw.eps ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}">${c.bw.eps || '-'}</span></td>
-              <td><span class="badge ${c.bw.agoda ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}">${c.bw.agoda || '-'}</span></td>
-              <td><span class="badge ${c.bw.hb ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}">${c.bw.hb || '-'}</span></td>
-              <td><span class="badge ${c.bw.wb ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}">${c.bw.wb || '-'}</span></td>
-              <td><span class="badge ${c.bw.wbSafe ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}">${c.bw.wbSafe || '-'}</span></td>
-              <td><span class="badge ${c.bw.dida ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}">${c.bw.dida || '-'}</span></td>
-              <td><span class="badge ${c.bw.mt ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}">${c.bw.mt || '-'}</span></td>
-            </tr>
+            ${[
+              {name: 'EPS', val: c.bw.eps},
+              {name: 'AGODA', val: c.bw.agoda},
+              {name: 'HB', val: c.bw.hb},
+              {name: 'WB', val: c.bw.wb},
+              {name: 'WB-Safe', val: c.bw.wbSafe},
+              {name: 'DIDA', val: c.bw.dida},
+              {name: 'MT', val: c.bw.mt}
+            ].map(s => {
+              const isOpen = s.val !== null && s.val !== undefined && s.val !== 0 && s.val !== '-';
+              return `<tr>
+                <td><strong>${s.name}</strong></td>
+                <td><span class="badge ${isOpen ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}">${s.val !== null && s.val !== undefined ? s.val : '-'}</span></td>
+                <td>${isOpen
+                  ? '<span class="badge bg-green-100 text-green-700"><i class="fas fa-toggle-on mr-1"></i>开启</span>'
+                  : '<span class="badge bg-gray-100 text-gray-600"><i class="fas fa-toggle-off mr-1"></i>关闭</span>'}</td>
+              </tr>`;
+            }).join('')}
           </tbody>
         </table>
       </div>
@@ -764,40 +791,37 @@ function renderStrategy(container) {
     <div class="tabs">
       <div class="tab active" onclick="switchStrategyTab(this, 'sensitive')">敏感酒店销售策略</div>
       <div class="tab" onclick="switchStrategyTab(this, 'bw')">BW配置</div>
-      <div class="tab" onclick="switchStrategyTab(this, 'userinfo')">渠道用户信息</div>
     </div>
 
     <div id="sensitivePanel">
       <div class="card">
         <div class="card-header">
-          <div class="card-title"><i class="fas fa-shield-halved text-red-500 mr-2"></i>敏感酒店销售策略矩阵</div>
-          <div class="text-sm text-slate-500">不同渠道对不同供应商的酒店敏感度策略配置</div>
+          <div class="card-title"><i class="fas fa-shield-halved text-red-500 mr-2"></i>敏感酒店销售策略透视表</div>
+          <div class="text-sm text-slate-500">按渠道+供应商组合查看酒店敏感度策略配置</div>
         </div>
         <div class="table-container">
           <table class="data-table">
             <thead>
               <tr>
                 <th>渠道</th>
-                <th>Expedia</th>
-                <th>Hotelbeds</th>
-                <th>WebBeds</th>
-                <th>WebBeds-Safe</th>
-                <th>Agoda</th>
-                <th>DIDA</th>
-                <th>美团供应商</th>
+                <th>供应商</th>
+                <th>策略</th>
               </tr>
             </thead>
             <tbody>
-              ${CRM_DATA.sensitiveStrategies.map(s => `
+              ${CRM_DATA.sensitiveStrategies.flatMap(s => [
+                {channel: s.channel, supplier: 'Expedia', strategy: s.expedia},
+                {channel: s.channel, supplier: 'Hotelbeds', strategy: s.hotelbeds},
+                {channel: s.channel, supplier: 'WebBeds', strategy: s.webbeds},
+                {channel: s.channel, supplier: 'WebBeds-Safe', strategy: s.webbedsSafe},
+                {channel: s.channel, supplier: 'Agoda', strategy: s.agoda},
+                {channel: s.channel, supplier: 'DIDA', strategy: s.dida},
+                {channel: s.channel, supplier: '美团供应商', strategy: s.meituan}
+              ]).map(item => `
                 <tr>
-                  <td><strong>${s.channel}</strong></td>
-                  <td>${renderStrategyCell(s.expedia)}</td>
-                  <td>${renderStrategyCell(s.hotelbeds)}</td>
-                  <td>${renderStrategyCell(s.webbeds)}</td>
-                  <td>${renderStrategyCell(s.webbedsSafe)}</td>
-                  <td>${renderStrategyCell(s.agoda)}</td>
-                  <td>${renderStrategyCell(s.dida)}</td>
-                  <td>${renderStrategyCell(s.meituan)}</td>
+                  <td><strong>${item.channel}</strong></td>
+                  <td>${item.supplier}</td>
+                  <td>${renderStrategyCell(item.strategy)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -869,39 +893,7 @@ function renderStrategy(container) {
       </div>
     </div>
 
-    <div id="userinfoPanel" style="display:none">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title"><i class="fas fa-user-shield text-green-500 mr-2"></i>渠道用户信息提供情况</div>
-        </div>
-        <div class="table-container">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>渠道</th>
-                <th>是否提供用户手机邮箱</th>
-                <th>邮箱</th>
-                <th>电话</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${CRM_DATA.channelUserInfo.map(c => `
-                <tr>
-                  <td><strong>${c.channel}</strong></td>
-                  <td>
-                    ${c.providesInfo
-                      ? '<span class="badge bg-green-100 text-green-700"><i class="fas fa-check mr-1"></i>提供</span>'
-                      : '<span class="badge bg-red-100 text-red-700"><i class="fas fa-xmark mr-1"></i>不提供' + (c.phone ? '，提供自己电话邮箱' : '') + '</span>'}
-                  </td>
-                  <td>${c.email || '-'}</td>
-                  <td>${c.phone || '-'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+
   `;
 }
 
@@ -917,7 +909,6 @@ function switchStrategyTab(el, type) {
   el.classList.add('active');
   document.getElementById('sensitivePanel').style.display = type === 'sensitive' ? '' : 'none';
   document.getElementById('bwPanel').style.display = type === 'bw' ? '' : 'none';
-  document.getElementById('userinfoPanel').style.display = type === 'userinfo' ? '' : 'none';
 }
 
 // ==================== Initialize ====================
