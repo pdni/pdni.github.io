@@ -236,6 +236,38 @@
       from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    .bw-pivot { display: flex; flex-direction: column; gap: 8px; }
+    .bw-group {
+      background: #f8fafc;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+    }
+    .bw-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      cursor: pointer;
+      transition: background 0.2s;
+      user-select: none;
+    }
+    .bw-header:hover { background: #f1f5f9; }
+    .bw-toggle {
+      width: 20px;
+      text-align: center;
+      color: #64748b;
+      font-size: 13px;
+      transition: transform 0.2s;
+    }
+    .bw-channel-name { font-size: 14px; color: #1e293b; flex: 1; }
+    .bw-summary { display: flex; gap: 8px; }
+    .bw-details {
+      padding: 0 18px 14px 50px;
+      animation: fadeIn 0.2s ease;
+    }
+    .bw-details .data-table th,
+    .bw-details .data-table td { padding: 8px 12px; font-size: 12px; }
   </style>
 </head>
 <body>

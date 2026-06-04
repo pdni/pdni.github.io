@@ -867,28 +867,58 @@ function renderStrategy(container) {
     <div id="bwPanel" style="display:none">
       <div class="card">
         <div class="card-header">
-          <div class="card-title"><i class="fas fa-calendar-days text-blue-500 mr-2"></i>BW配置矩阵（提前预订天数）</div>
-          <div class="text-sm text-slate-500">各渠道对不同供应商的提前预订天数限制</div>
+          <div class="card-title"><i class="fas fa-calendar-days text-blue-500 mr-2"></i>BW配置透视表（提前预订天数）</div>
+          <div class="text-sm text-slate-500">点击渠道名称可展开/折叠，查看各渠道下供应商BW明细</div>
         </div>
-        <div class="table-container">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>渠道/供应商</th>
-                ${CRM_DATA.bwConfig.suppliers.slice(0, 10).map(s => `<th>${s}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>
-              ${CRM_DATA.bwConfig.channels.slice(0, 8).map(c => `
-                <tr>
-                  <td><strong>${c.name}</strong></td>
-                  ${c.values.slice(0, 10).map(v => `
-                    <td><span class="badge ${v ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}">${v !== null && v !== undefined ? v : '-'}</span></td>
-                  `).join('')}
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+        <div class="bw-pivot">
+          ${CRM_DATA.bwConfig.channels.map((c, idx) => {
+            const items = CRM_DATA.bwConfig.suppliers.map((s, i) => ({
+              supplier: s,
+              bw: c.values[i]
+            })).filter(x => x.bw !== null && x.bw !== undefined && x.bw !== '-');
+            const avgBw = items.length > 0 ? Math.round(items.reduce((a, b) => a + (Number(b.bw) || 0), 0) / items.length) : 0;
+            const openCount = items.filter(x => Number(x.bw) > 0).length;
+            return `
+              <div class="bw-group" data-expanded="false">
+                <div class="bw-header" onclick="toggleBwGroup(this)">
+                  <span class="bw-toggle"><i class="fas fa-chevron-right"></i></span>
+                  <span class="bw-channel-name"><strong>${c.name}</strong></span>
+                  <span class="bw-summary">
+                    <span class="badge bg-blue-50 text-blue-700">${items.length}个供应商</span>
+                    <span class="badge bg-green-50 text-green-700">平均BW ${avgBw}天</span>
+                  </span>
+                </div>
+                <div class="bw-details" style="display:none">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>供应商</th>
+                        <th>BW值（提前预订天数）</th>
+                        <th>状态</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${CRM_DATA.bwConfig.suppliers.map((s, i) => {
+                        const bw = c.values[i];
+                        const isOpen = bw !== null && bw !== undefined && bw !== 0 && bw !== '-';
+                        return `
+                          <tr>
+                            <td><strong>${s}</strong></td>
+                            <td><span class="badge ${isOpen ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}">${bw !== null && bw !== undefined ? bw : '-'}</span></td>
+                            <td>
+                              ${isOpen
+                                ? '<span class="badge bg-green-100 text-green-700"><i class="fas fa-toggle-on mr-1"></i>开启</span>'
+                                : '<span class="badge bg-gray-100 text-gray-600"><i class="fas fa-toggle-off mr-1"></i>关闭</span>'}
+                            </td>
+                          </tr>
+                        `;
+                      }).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            `;
+          }).join('')}
         </div>
       </div>
     </div>
@@ -909,6 +939,23 @@ function switchStrategyTab(el, type) {
   el.classList.add('active');
   document.getElementById('sensitivePanel').style.display = type === 'sensitive' ? '' : 'none';
   document.getElementById('bwPanel').style.display = type === 'bw' ? '' : 'none';
+}
+
+function toggleBwGroup(header) {
+  const group = header.parentElement;
+  const details = header.nextElementSibling;
+  const icon = header.querySelector('.bw-toggle i');
+  const isExpanded = group.getAttribute('data-expanded') === 'true';
+  
+  if (isExpanded) {
+    details.style.display = 'none';
+    icon.className = 'fas fa-chevron-right';
+    group.setAttribute('data-expanded', 'false');
+  } else {
+    details.style.display = '';
+    icon.className = 'fas fa-chevron-down';
+    group.setAttribute('data-expanded', 'true');
+  }
 }
 
 // ==================== Initialize ====================
