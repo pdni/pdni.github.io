@@ -35,8 +35,7 @@ function renderPage(page) {
     case 'dashboard': renderDashboard(container); break;
     case 'suppliers': renderSuppliers(container); break;
     case 'channels': renderChannels(container); break;
-    case 'onboarding': renderOnboarding(container); break;
-    case 'offline': renderOffline(container); break;
+    case 'records': renderRecords(container); break;
     case 'strategy': renderStrategy(container); break;
   }
 }
@@ -555,63 +554,92 @@ function renderChannelDetail(container) {
 }
 
 
-// ==================== Onboarding Records ====================
-function renderOnboarding(container) {
-  const records = [...CRM_DATA.channelOnboardingRecords, ...CRM_DATA.supplierOnboardingRecords];
-  records.sort((a, b) => new Date(b.date) - new Date(a.date));
+// ==================== Records (Onboarding + Offline) ====================
+function renderRecords(container) {
+  // 转换渠道上线记录为透视表：把渠道名称从列名变为字段值
+  const channelPivotRecords = CRM_DATA.channelOnboardingRecords.flatMap(r => {
+    const mappings = [
+      {key: 'quNaEr', name: '去哪儿'}, {key: 'quNaErYiZhu', name: '去哪儿易住'},
+      {key: 'feiZhu', name: '飞猪'}, {key: 'feiZhuLeZhu', name: '飞猪乐住'},
+      {key: 'tongCheng', name: '同程'}, {key: 'tongChengHaiZhu', name: '同程嗨住'},
+      {key: 'tongChengMaZhu', name: '同程马住'}, {key: 'haiZhuFenXiao', name: '嗨住分销'},
+      {key: 'meiTuan', name: '美团'}, {key: 'etg', name: 'ETG'},
+      {key: 'etgMask', name: 'ETG-马甲'}, {key: 'feiZhuAnZhu', name: '飞猪安住'},
+      {key: 'feiZhuXiangZhu', name: '飞猪享住'}, {key: 'tongChengYouZhu', name: '同程优住'},
+      {key: 'meiTuanYiZhu', name: '美团易住'}
+    ];
+    return mappings
+      .filter(m => r[m.key] !== null && r[m.key] !== undefined)
+      .map(m => ({
+        date: r.date, type: r.type, recordType: '渠道上线',
+        targetName: m.name, value: r[m.key],
+        supplier: r.supplier, remark: r.remark
+      }));
+  }).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  // 转换供应商上线记录为透视表：把供应商名称从列名变为字段值
+  const supplierPivotRecords = CRM_DATA.supplierOnboardingRecords.flatMap(r => {
+    const mappings = [
+      {key: 'eps', name: 'EPS'}, {key: 'id2', name: 'ID2'},
+      {key: 'hb', name: 'HB'}, {key: 'wb', name: 'WB'},
+      {key: 'agd', name: 'AGODA'}, {key: 'wbSafe', name: 'WB-Safe'},
+      {key: 'dida', name: 'DIDA'}, {key: 'meituan', name: '美团'},
+      {key: 'rakuten', name: 'Rakuten'}, {key: 'ratehawk', name: 'Ratehawk'},
+      {key: 'meilian', name: '美联'}, {key: 'ratehawkB2B', name: 'Ratehawk-B2B'},
+      {key: 'travelgate', name: 'Travelgate'}
+    ];
+    return mappings
+      .filter(m => r[m.key] !== null && r[m.key] !== undefined)
+      .map(m => ({
+        date: r.date, type: r.type, recordType: '供应商上线',
+        targetName: m.name, value: r[m.key],
+        sellType: r.sellType
+      }));
+  }).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const allOnboarding = [...channelPivotRecords, ...supplierPivotRecords]
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   container.innerHTML = `
     <div class="topbar">
-      <h1 class="page-title">上线记录</h1>
-      <div class="flex gap-2">
-        <input type="text" class="search-input" placeholder="搜索记录..." id="onboardingSearch" oninput="filterOnboarding()">
-      </div>
+      <h1 class="page-title">上下线记录</h1>
+      <input type="text" class="search-input" placeholder="搜索记录..." id="recordsSearch" oninput="filterRecords()">
     </div>
 
     <div class="tabs">
-      <div class="tab active" onclick="switchOnboardingTab(this, 'channel')">渠道上线记录</div>
-      <div class="tab" onclick="switchOnboardingTab(this, 'supplier')">供应商上线记录</div>
+      <div class="tab active" onclick="switchRecordsTab(this, 'onboarding')">上线记录</div>
+      <div class="tab" onclick="switchRecordsTab(this, 'offline')">下线记录</div>
     </div>
 
-    <div id="channelOnboarding">
+    <div id="onboardingRecordsPanel">
       <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-upload text-blue-500 mr-2"></i>上线记录透视表</div>
+          <div class="text-sm text-slate-500">渠道/供应商名称已作为字段值展开</div>
+        </div>
         <div class="table-container">
-          <table class="data-table" id="channelOnboardingTable">
+          <table class="data-table" id="onboardingRecordsTable">
             <thead>
               <tr>
                 <th>日期</th>
+                <th>记录类型</th>
                 <th>上线类型</th>
-                <th>供应商</th>
-                <th>备注</th>
-                <th>去哪儿</th>
-                <th>飞猪</th>
-                <th>同程</th>
-                <th>美团</th>
-                <th>ETG</th>
-                <th>嗨住</th>
-                <th>优住/安住/享住/易住</th>
+                <th>对象名称</th>
+                <th>数量</th>
+                <th>关联供应商</th>
+                <th>售卖类型/备注</th>
               </tr>
             </thead>
             <tbody>
-              ${CRM_DATA.channelOnboardingRecords.map(r => `
+              ${allOnboarding.map(r => `
                 <tr>
                   <td>${r.date}</td>
-                  <td><span class="badge bg-blue-100 text-blue-700">${r.type}</span></td>
+                  <td><span class="badge ${r.recordType === '渠道上线' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}">${r.recordType}</span></td>
+                  <td><span class="badge bg-slate-100 text-slate-700">${r.type}</span></td>
+                  <td><strong>${r.targetName}</strong></td>
+                  <td>${formatNumber(r.value)}</td>
                   <td>${r.supplier || '-'}</td>
-                  <td>${r.remark || '-'}</td>
-                  <td>${r.quNaEr || r.quNaErYiZhu ? formatNumber((r.quNaEr || 0) + (r.quNaErYiZhu || 0)) : '-'}</td>
-                  <td>${r.feiZhu || r.feiZhuLeZhu ? formatNumber((r.feiZhu || 0) + (r.feiZhuLeZhu || 0)) : '-'}</td>
-                  <td>${r.tongCheng || r.tongChengHaiZhu || r.tongChengMaZhu ? formatNumber((r.tongCheng || 0) + (r.tongChengHaiZhu || 0) + (r.tongChengMaZhu || 0)) : '-'}</td>
-                  <td>${r.meiTuan ? formatNumber(r.meiTuan) : '-'}</td>
-                  <td>${r.etg || r.etgMask ? formatNumber((r.etg || 0) + (r.etgMask || 0)) : '-'}</td>
-                  <td>${r.haiZhuFenXiao ? formatNumber(r.haiZhuFenXiao) : '-'}</td>
-                  <td>
-                    ${r.feiZhuAnZhu ? '安住:' + formatNumber(r.feiZhuAnZhu) + ' ' : ''}
-                    ${r.feiZhuXiangZhu ? '享住:' + formatNumber(r.feiZhuXiangZhu) + ' ' : ''}
-                    ${r.tongChengYouZhu ? '优住:' + formatNumber(r.tongChengYouZhu) + ' ' : ''}
-                    ${r.meiTuanYiZhu ? '易住:' + formatNumber(r.meiTuanYiZhu) : ''}
-                    ${!r.feiZhuAnZhu && !r.feiZhuXiangZhu && !r.tongChengYouZhu && !r.meiTuanYiZhu ? '-' : ''}
-                  </td>
+                  <td>${r.sellType || r.remark || '-'}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -620,47 +648,74 @@ function renderOnboarding(container) {
       </div>
     </div>
 
-    <div id="supplierOnboarding" style="display:none">
+    <div id="offlineRecordsPanel" style="display:none">
+      <div class="grid-4" style="margin-bottom:20px">
+        <div class="stat-card">
+          <div class="stat-icon bg-red-100 text-red-600"><i class="fas fa-ban"></i></div>
+          <div>
+            <div class="stat-value">${CRM_DATA.stats.totalOfflineRecords}</div>
+            <div class="stat-label">总下线记录</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon bg-orange-100 text-orange-600"><i class="fas fa-copy"></i></div>
+          <div>
+            <div class="stat-value">${CRM_DATA.offlineRecords.filter(r => r.reason === '重复酒店聚合风险').length}</div>
+            <div class="stat-label">重复聚合风险</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon bg-purple-100 text-purple-600"><i class="fas fa-vial"></i></div>
+          <div>
+            <div class="stat-value">${CRM_DATA.offlineRecords.filter(r => r.reason.includes('测试')).length}</div>
+            <div class="stat-label">测试单下线</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon bg-amber-100 text-amber-600"><i class="fas fa-file-circle-xmark"></i></div>
+          <div>
+            <div class="stat-value">${CRM_DATA.offlineRecords.filter(r => r.reason.includes('违规')).length}</div>
+            <div class="stat-label">违规单下线</div>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="table-container">
-          <table class="data-table" id="supplierOnboardingTable">
+          <table class="data-table" id="offlineRecordsTable">
             <thead>
               <tr>
-                <th>日期</th>
-                <th>类型</th>
-                <th>售卖类型</th>
-                <th>EPS</th>
-                <th>HB</th>
-                <th>WB</th>
-                <th>AGD</th>
-                <th>DIDA</th>
-                <th>美团</th>
-                <th>travelgate</th>
-                <th>其他</th>
+                <th>Center ID</th>
+                <th>供应商</th>
+                <th>酒店名称</th>
+                <th>渠道</th>
+                <th>状态</th>
+                <th>原因</th>
+                <th>详情</th>
+                <th>处理日期</th>
+                <th>处理人</th>
               </tr>
             </thead>
             <tbody>
-              ${CRM_DATA.supplierOnboardingRecords.map(r => `
-                <tr>
-                  <td>${r.date}</td>
-                  <td><span class="badge ${r.type === '首次上线' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}">${r.type}</span></td>
-                  <td>${r.sellType || '-'}</td>
-                  <td>${r.eps || '-'}</td>
-                  <td>${r.hb || '-'}</td>
-                  <td>${r.wb || '-'}</td>
-                  <td>${r.agd || '-'}</td>
-                  <td>${r.dida || '-'}</td>
-                  <td>${r.meituan || '-'}</td>
-                  <td>${r.travelgate || '-'}</td>
-                  <td>
-                    ${r.rakuten ? 'rakuten:' + r.rakuten + ' ' : ''}
-                    ${r.ratehawk ? 'ratehawk:' + r.ratehawk + ' ' : ''}
-                    ${r.ratehawkB2B ? 'ratehawkB2B:' + r.ratehawkB2B + ' ' : ''}
-                    ${r.id2 ? 'ID2:' + r.id2 + ' ' : ''}
-                    ${r.wbSafe ? 'WB-S:' + r.wbSafe : ''}
-                  </td>
-                </tr>
-              `).join('')}
+              ${CRM_DATA.offlineRecords.map(r => {
+                let badgeClass = 'bg-gray-100 text-gray-700';
+                if (r.reason.includes('测试')) badgeClass = 'bg-purple-100 text-purple-700';
+                else if (r.reason.includes('违规')) badgeClass = 'bg-red-100 text-red-700';
+                else if (r.reason.includes('聚合')) badgeClass = 'bg-orange-100 text-orange-700';
+                return `
+                  <tr>
+                    <td>${r.centerId}</td>
+                    <td>${r.supplier}</td>
+                    <td title="${r.hotelName}">${r.hotelName.length > 20 ? r.hotelName.slice(0, 20) + '...' : r.hotelName}</td>
+                    <td>${r.channel}</td>
+                    <td><span class="badge bg-red-100 text-red-700">${r.status}</span></td>
+                    <td><span class="badge ${badgeClass}">${r.reason}</span></td>
+                    <td title="${r.detail || ''}">${r.detail ? (r.detail.length > 20 ? r.detail.slice(0, 20) + '...' : r.detail) : '-'}</td>
+                    <td>${r.processDate}</td>
+                    <td>${r.operator}</td>
+                  </tr>
+                `;
+              }).join('')}
             </tbody>
           </table>
         </div>
@@ -669,115 +724,24 @@ function renderOnboarding(container) {
   `;
 }
 
-function switchOnboardingTab(el, type) {
+function switchRecordsTab(el, type) {
   document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('channelOnboarding').style.display = type === 'channel' ? '' : 'none';
-  document.getElementById('supplierOnboarding').style.display = type === 'supplier' ? '' : 'none';
+  document.getElementById('onboardingRecordsPanel').style.display = type === 'onboarding' ? '' : 'none';
+  document.getElementById('offlineRecordsPanel').style.display = type === 'offline' ? '' : 'none';
 }
 
-function filterOnboarding() {
-  const term = document.getElementById('onboardingSearch').value.toLowerCase();
-  const tables = ['channelOnboardingTable', 'supplierOnboardingTable'];
+function filterRecords() {
+  const term = document.getElementById('recordsSearch').value.toLowerCase();
+  const tables = ['onboardingRecordsTable', 'offlineRecordsTable'];
   tables.forEach(id => {
-    const rows = document.querySelectorAll(`#${id} tbody tr`);
+    const table = document.getElementById(id);
+    if (!table) return;
+    const rows = table.querySelectorAll('tbody tr');
     rows.forEach(row => {
       const text = row.textContent.toLowerCase();
       row.style.display = text.includes(term) ? '' : 'none';
     });
-  });
-}
-
-// ==================== Offline Records ====================
-function renderOffline(container) {
-  container.innerHTML = `
-    <div class="topbar">
-      <h1 class="page-title">下线记录</h1>
-      <div class="flex gap-2">
-        <input type="text" class="search-input" placeholder="搜索酒店/原因/处理人..." id="offlineSearch" oninput="filterOffline()">
-      </div>
-    </div>
-
-    <div class="grid-4" style="margin-bottom:20px">
-      <div class="stat-card">
-        <div class="stat-icon bg-red-100 text-red-600"><i class="fas fa-ban"></i></div>
-        <div>
-          <div class="stat-value">${CRM_DATA.stats.totalOfflineRecords}</div>
-          <div class="stat-label">总下线记录</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon bg-orange-100 text-orange-600"><i class="fas fa-copy"></i></div>
-        <div>
-          <div class="stat-value">${CRM_DATA.offlineRecords.filter(r => r.reason === '重复酒店聚合风险').length}</div>
-          <div class="stat-label">重复聚合风险</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon bg-purple-100 text-purple-600"><i class="fas fa-vial"></i></div>
-        <div>
-          <div class="stat-value">${CRM_DATA.offlineRecords.filter(r => r.reason.includes('测试')).length}</div>
-          <div class="stat-label">测试单下线</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon bg-amber-100 text-amber-600"><i class="fas fa-file-circle-xmark"></i></div>
-        <div>
-          <div class="stat-value">${CRM_DATA.offlineRecords.filter(r => r.reason.includes('违规')).length}</div>
-          <div class="stat-label">违规单下线</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="table-container">
-        <table class="data-table" id="offlineTable">
-          <thead>
-            <tr>
-              <th>Center ID</th>
-              <th>供应商</th>
-              <th>酒店名称</th>
-              <th>渠道</th>
-              <th>状态</th>
-              <th>原因</th>
-              <th>详情</th>
-              <th>处理日期</th>
-              <th>处理人</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${CRM_DATA.offlineRecords.map(r => {
-              let badgeClass = 'bg-gray-100 text-gray-700';
-              if (r.reason.includes('测试')) badgeClass = 'bg-purple-100 text-purple-700';
-              else if (r.reason.includes('违规')) badgeClass = 'bg-red-100 text-red-700';
-              else if (r.reason.includes('聚合')) badgeClass = 'bg-orange-100 text-orange-700';
-              return `
-                <tr>
-                  <td>${r.centerId}</td>
-                  <td>${r.supplier}</td>
-                  <td title="${r.hotelName}">${r.hotelName.length > 20 ? r.hotelName.slice(0, 20) + '...' : r.hotelName}</td>
-                  <td>${r.channel}</td>
-                  <td><span class="badge bg-red-100 text-red-700">${r.status}</span></td>
-                  <td><span class="badge ${badgeClass}">${r.reason}</span></td>
-                  <td title="${r.detail || ''}">${r.detail ? (r.detail.length > 20 ? r.detail.slice(0, 20) + '...' : r.detail) : '-'}</td>
-                  <td>${r.processDate}</td>
-                  <td>${r.operator}</td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
-}
-
-function filterOffline() {
-  const term = document.getElementById('offlineSearch').value.toLowerCase();
-  const rows = document.querySelectorAll('#offlineTable tbody tr');
-  rows.forEach(row => {
-    const text = row.textContent.toLowerCase();
-    row.style.display = text.includes(term) ? '' : 'none';
   });
 }
 
