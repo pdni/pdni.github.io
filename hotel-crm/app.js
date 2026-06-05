@@ -224,6 +224,7 @@ function renderSuppliers(container) {
               <th>额度</th>
               <th>月均单量</th>
               <th>排名</th>
+              <th>是否互售</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -243,6 +244,7 @@ function renderSuppliers(container) {
                 <td>${s.quota || '-'}</td>
                 <td>${s.monthlyOrders || '-'}</td>
                 <td>${s.productionRank || '-'}</td>
+                <td>${getMutualSaleBadge(isSupplierMutualSale(s))}</td>
                 <td>
                   <button class="btn btn-primary" onclick="navigate('suppliers', {supplierId:'${s.id}'})">
                     <i class="fas fa-eye"></i> 详情
@@ -309,6 +311,7 @@ function renderSupplierDetail(container) {
           <div class="detail-row"><span class="detail-label">上线日期</span><span class="detail-value">${s.onlineDate ? s.onlineDate.split(' ')[0] : '-'}</span></div>
           <div class="detail-row"><span class="detail-label">合作主体</span><span class="detail-value">${s.partnerEntity || '-'}</span></div>
           <div class="detail-row"><span class="detail-label">马甲</span><span class="detail-value">${s.mask || '-'}</span></div>
+          <div class="detail-row"><span class="detail-label">是否互售</span><span class="detail-value">${getMutualSaleBadge(isSupplierMutualSale(s))}</span></div>
         </div>
       </div>
 
@@ -370,6 +373,7 @@ function renderChannels(container) {
               <th>有价酒店</th>
               <th>露出产品</th>
               <th>面纱设置</th>
+              <th>是否互售</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -383,6 +387,7 @@ function renderChannels(container) {
                 <td>${formatNumber(c.pricedHotels)}</td>
                 <td>${formatNumber(c.exposedProducts)}</td>
                 <td>${c.veilSetting ? '<span class="badge bg-amber-100 text-amber-700">有设置</span>' : '<span class="badge bg-gray-100 text-gray-600">无</span>'}</td>
+                <td>${getMutualSaleBadge(isChannelMutualSale(c))}</td>
                 <td>
                   <button class="btn btn-primary" onclick="navigate('channels', {channelName:'${c.name}'})">
                     <i class="fas fa-eye"></i> 详情
@@ -480,6 +485,7 @@ function renderChannelDetail(container) {
         <div class="detail-panel">
           <div class="detail-row"><span class="detail-label">面纱设置</span><span class="detail-value">${c.veilSetting || '无'}</span></div>
           <div class="detail-row"><span class="detail-label">面纱备注</span><span class="detail-value">${c.veilRemark || '-'}</span></div>
+          <div class="detail-row"><span class="detail-label">是否互售</span><span class="detail-value">${getMutualSaleBadge(isChannelMutualSale(c))}</span></div>
         </div>
       </div>
     </div>
@@ -918,6 +924,23 @@ function switchStrategyTab(el, type) {
   el.classList.add('active');
   document.getElementById('sensitivePanel').style.display = type === 'sensitive' ? '' : 'none';
   document.getElementById('bwPanel').style.display = type === 'bw' ? '' : 'none';
+}
+
+function getMutualSaleBadge(isMutual) {
+  return isMutual
+    ? '<span class="badge bg-purple-100 text-purple-700"><i class="fas fa-exchange-alt mr-1"></i>互售</span>'
+    : '<span class="badge bg-gray-100 text-gray-600">非互售</span>';
+}
+
+function isSupplierMutualSale(s) {
+  if (s.resourceType === '直采+三方') return true;
+  if (s.resourceType === '直采') return false;
+  if (s.type === '批发商') return true;
+  return false;
+}
+
+function isChannelMutualSale(c) {
+  return c.name.includes('美团');
 }
 
 function toggleBwGroup(header) {
