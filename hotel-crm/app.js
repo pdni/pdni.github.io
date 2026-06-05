@@ -797,35 +797,50 @@ function renderStrategy(container) {
       <div class="card">
         <div class="card-header">
           <div class="card-title"><i class="fas fa-shield-halved text-red-500 mr-2"></i>敏感酒店销售策略透视表</div>
-          <div class="text-sm text-slate-500">按渠道+供应商组合查看酒店敏感度策略配置</div>
+          <div class="text-sm text-slate-500">点击渠道名称可展开/折叠，查看各渠道下供应商策略明细</div>
         </div>
-        <div class="table-container">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>渠道</th>
-                <th>供应商</th>
-                <th>策略</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${CRM_DATA.sensitiveStrategies.flatMap(s => [
-                {channel: s.channel, supplier: 'Expedia', strategy: s.expedia},
-                {channel: s.channel, supplier: 'Hotelbeds', strategy: s.hotelbeds},
-                {channel: s.channel, supplier: 'WebBeds', strategy: s.webbeds},
-                {channel: s.channel, supplier: 'WebBeds-Safe', strategy: s.webbedsSafe},
-                {channel: s.channel, supplier: 'Agoda', strategy: s.agoda},
-                {channel: s.channel, supplier: 'DIDA', strategy: s.dida},
-                {channel: s.channel, supplier: '美团供应商', strategy: s.meituan}
-              ]).map(item => `
-                <tr>
-                  <td><strong>${item.channel}</strong></td>
-                  <td>${item.supplier}</td>
-                  <td>${renderStrategyCell(item.strategy)}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+        <div class="bw-pivot">
+          ${CRM_DATA.sensitiveStrategies.map((s, idx) => {
+            const items = [
+              {supplier: 'Expedia', strategy: s.expedia},
+              {supplier: 'Hotelbeds', strategy: s.hotelbeds},
+              {supplier: 'WebBeds', strategy: s.webbeds},
+              {supplier: 'WebBeds-Safe', strategy: s.webbedsSafe},
+              {supplier: 'Agoda', strategy: s.agoda},
+              {supplier: 'DIDA', strategy: s.dida},
+              {supplier: '美团供应商', strategy: s.meituan}
+            ];
+            const activeCount = items.filter(x => x.strategy && x.strategy !== '/').length;
+            return `
+              <div class="bw-group" data-expanded="false">
+                <div class="bw-header" onclick="toggleBwGroup(this)">
+                  <span class="bw-toggle"><i class="fas fa-chevron-right"></i></span>
+                  <span class="bw-channel-name"><strong>${s.channel}</strong></span>
+                  <span class="bw-summary">
+                    <span class="badge bg-red-50 text-red-700">${activeCount}个供应商有策略</span>
+                  </span>
+                </div>
+                <div class="bw-details" style="display:none">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>供应商</th>
+                        <th>策略</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${items.map(item => `
+                        <tr>
+                          <td><strong>${item.supplier}</strong></td>
+                          <td>${renderStrategyCell(item.strategy)}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            `;
+          }).join('')}
         </div>
       </div>
 
